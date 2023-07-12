@@ -23,16 +23,8 @@ exports.createBook = (req, res, next) => {
   delete bookObject._id;
   delete bookObject._userId;
 
-  // Reste du code pour le traitement des métadonnées
-  // sharpMiddleware(req, res, () => {
   const extension = MIME_TYPES["image/webp"];
-  // Obtenez le nom de l'image créée
-  // const imageName = req.file.filename;
 
-  // // Utilisez le nom de l'image comme nécessaire
-  // console.log("Nom de l'extension :", extension);
-
-  // console.log("Nom de l'image créée :",  req.file.originalname);
   if (req.file) {
     const date = Date.now();
 
