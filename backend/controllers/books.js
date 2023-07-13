@@ -1,27 +1,27 @@
 // const bcrypt = require("bcrypt");
 // const jwt = require("jsonwebtoken");
 const Book = require("../models/Book");
-const multer = require("multer");
+// const multer = require("multer");
 // const upload = multer({ dest: "uploads/" });
 const sharp = require("sharp");
 const fs = require("fs");
 
+const MIME_TYPES = {
+  "image/jpg": "jpg",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
 exports.createBook = (req, res, next) => {
-  const MIME_TYPES = {
-    "image/jpg": "jpg",
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/webp": "webp",
-  };
   const bookObject = JSON.parse(req.body.book);
   delete bookObject._id;
   delete bookObject._userId;
 
   const extension = MIME_TYPES["image/webp"];
+ const date = Date.now();
 
   if (req.file) {
-    const date = Date.now();
-
     sharp(req.file.buffer)
       .resize({ height: 500 })
       .toFile(
@@ -57,27 +57,64 @@ exports.createBook = (req, res, next) => {
 };
 
 exports.modify = (req, res, next) => {
+  const extension = MIME_TYPES["image/webp"];
+  const date = Date.now();
   Book.findOne({ _id: req.params.id })
     .then((book) => {
-      if (!book) {
-        return res.status(404).json({ message: "L'objet n'a pas été trouvé." });
-      }
       let bookObject;
 
       if (req.file) {
-        const fileName = book.imageUrl.split("/images/")[1];
+        // const fileName = book.imageUrl.split("/images/")[1];
+
+        ///////////////////////////////////////remplacer filname
+
 
         bookObject = {
           ...JSON.parse(req.body.book),
-          imageUrl: `${req.protocol}://${req.get("host")}/images/${fileName}`,
+          imageUrl: `${req.protocol}://${req.get("host")}/images/${
+        req.file.originalname.split(" ").join("_").split(".").shift() +
+        date +
+        "." +
+        extension
+      }`,
         };
 
         delete bookObject._userId;
 
         sharp(req.file.buffer)
           .resize({ height: 500 })
-          .toFile(`images/${fileName}`)
+          .toFile( `images/${
+            req.file.originalname.split(" ").join("_").split(".").shift() +
+            date +
+            "." +
+            extension
+          }`)
           .catch((error) => console.log(error));
+//////////////////////////////////////////////remplacer par .toFile(
+      /*  `images/${
+          req.file.originalname.split(" ").join("_").split(".").shift() +
+          date +
+          "." +
+          extension
+        }`*/
+//pour supprimer l'image, 
+const fileToDelete = book.imageUrl.split("/images/")[1];
+fs.unlink(`./images/${fileToDelete}`, (error) => {
+  if (error) {
+    console.error(error);
+    return res.status(500).json({
+      error:
+        "Une erreur s'est produite lors de la suppression de l'image.",
+    });
+  }
+  });
+      
+
+/*Fs
+
+
+
+*/
       } else {
         bookObject = { ...req.body };
         delete bookObject._userId;
@@ -88,9 +125,9 @@ exports.modify = (req, res, next) => {
         { ...bookObject, _id: req.params.id }
       )
         .then(() => res.status(200).json({ message: "Objet modifié" }))
-        .catch((error) => res.status(401).json({ error }));
+        .catch((error) => res.status(401).json({ err }));
     })
-    .catch((error) => res.status(400).json({ error }));
+    .catch((error) => res.status(400).json({ err }));
 };
 
 exports.delete = (req, res, next) => {
