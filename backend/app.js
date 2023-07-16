@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const userRoutes = require("./routes/user");
 const booksRoutes = require("./routes/books");
 const path = require("path");
+const auth = require("./middleware/auth");
 
 mongoose
   .connect(

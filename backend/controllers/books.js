@@ -1,8 +1,5 @@
-// const bcrypt = require("bcrypt");
-// const jwt = require("jsonwebtoken");
 const Book = require("../models/Book");
-// const multer = require("multer");
-// const upload = multer({ dest: "uploads/" });
+const multer = require("multer");
 const sharp = require("sharp");
 const fs = require("fs");
 
@@ -17,9 +14,8 @@ exports.createBook = (req, res, next) => {
   const bookObject = JSON.parse(req.body.book);
   delete bookObject._id;
   delete bookObject._userId;
-
   const extension = MIME_TYPES["image/webp"];
- const date = Date.now();
+  const date = Date.now();
 
   if (req.file) {
     sharp(req.file.buffer)
@@ -44,7 +40,6 @@ exports.createBook = (req, res, next) => {
         extension
       }`,
     });
-
     // Enregistrer le livre dans la base de données
     book
       .save()
@@ -64,57 +59,39 @@ exports.modify = (req, res, next) => {
       let bookObject;
 
       if (req.file) {
-        // const fileName = book.imageUrl.split("/images/")[1];
-
-        ///////////////////////////////////////remplacer filname
-
-
         bookObject = {
           ...JSON.parse(req.body.book),
           imageUrl: `${req.protocol}://${req.get("host")}/images/${
-        req.file.originalname.split(" ").join("_").split(".").shift() +
-        date +
-        "." +
-        extension
-      }`,
-        };
-
-        delete bookObject._userId;
-
-        sharp(req.file.buffer)
-          .resize({ height: 500 })
-          .toFile( `images/${
             req.file.originalname.split(" ").join("_").split(".").shift() +
             date +
             "." +
             extension
-          }`)
+          }`,
+        };
+
+        delete bookObject._userId;
+        sharp(req.file.buffer)
+          .resize({ height: 500 })
+          .toFile(
+            `images/${
+              req.file.originalname.split(" ").join("_").split(".").shift() +
+              date +
+              "." +
+              extension
+            }`
+          )
           .catch((error) => console.log(error));
-//////////////////////////////////////////////remplacer par .toFile(
-      /*  `images/${
-          req.file.originalname.split(" ").join("_").split(".").shift() +
-          date +
-          "." +
-          extension
-        }`*/
-//pour supprimer l'image, 
-const fileToDelete = book.imageUrl.split("/images/")[1];
-fs.unlink(`./images/${fileToDelete}`, (error) => {
-  if (error) {
-    console.error(error);
-    return res.status(500).json({
-      error:
-        "Une erreur s'est produite lors de la suppression de l'image.",
-    });
-  }
-  });
-      
 
-/*Fs
-
-
-
-*/
+        const fileToDelete = book.imageUrl.split("/images/")[1];
+        fs.unlink(`./images/${fileToDelete}`, (error) => {
+          if (error) {
+            console.error(error);
+            return res.status(500).json({
+              error:
+                "Une erreur s'est produite lors de la suppression de l'image.",
+            });
+          }
+        });
       } else {
         bookObject = { ...req.body };
         delete bookObject._userId;
@@ -127,7 +104,7 @@ fs.unlink(`./images/${fileToDelete}`, (error) => {
         .then(() => res.status(200).json({ message: "Objet modifié" }))
         .catch((error) => res.status(401).json({ err }));
     })
-    .catch((error) => res.status(400).json({ err }));
+    .catch((error) => res.status(400).json({ error }));
 };
 
 exports.delete = (req, res, next) => {
@@ -136,6 +113,7 @@ exports.delete = (req, res, next) => {
       if (!book) {
         return res.status(404).json({ message: "L'objet n'a pas été trouvé." });
       }
+      console.log(book.imageUrl);
       const fileName = book.imageUrl.split("/images/")[1];
 
       fs.unlink(`./images/${fileName}`, (err) => {
@@ -184,15 +162,13 @@ exports.bookRating = (req, res, next) => {
       .then((book) => {
         const newRatings = book.ratings;
         const grades = newRatings.map((rating) => rating.grade);
-        console.log(grades);
 
         let sum = 0;
         for (let i = 0; i < grades.length; i++) {
           sum += grades[i];
         }
         averageGrades = sum / grades.length;
-        console.log(sum);
-        console.log(averageGrades);
+
         Book.updateOne(
           { _id: req.params.id },
           { $set: { averageRating: averageGrades } }
